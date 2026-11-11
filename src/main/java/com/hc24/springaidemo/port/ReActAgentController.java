@@ -1,4 +1,6 @@
-package com.hc24.springaidemo;
+package com.hc24.springaidemo.port;
+
+import com.hc24.springaidemo.agent.ReActAgent;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -13,8 +15,8 @@ public class ReActAgentController {
     }
 
     @GetMapping("/react")
-    public String reactAgent(String userQuestion) {
-        return this.reActAgent.react(userQuestion, ReActAgent.NOOP);
+    public String reactAgent(String question) {
+        return this.reActAgent.react(question, ReActAgent.NOOP);
     }
 
 }

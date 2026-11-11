@@ -1,9 +1,13 @@
-package com.hc24.springaidemo;
+package com.hc24.springaidemo.agent;
+
+import com.hc24.springaidemo.tool.TripTool;
+import com.hc24.springaidemo.tool.WeatherTool;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.ChatClientAttributes;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
@@ -30,23 +34,28 @@ public class ReActAgent {
     private final ChatClient chatClient;
     private final ToolCallingManager toolCallingManager;
     private final ToolCallback[] toolCallbacks;
-    private final int maxRound;
 
-    public ReActAgent(ChatModel chatModel, WeatherTool weatherTool, ToolCallingManager toolCallingManager,
-            @Value("${react.max-round}") int maxRound) {
+    @Value("${react.max-round}")
+    private int maxRound;
+
+    @Value("${react.system-message}")
+    private String systemMessage;
+
+    public ReActAgent(ChatModel chatModel, WeatherTool weatherTool, TripTool chengduTripTool,
+            ToolCallingManager toolCallingManager) {
         // Keep tool execution in this loop. ChatClient would otherwise run tools itself.
         this.chatClient = ChatClient.builder(chatModel)
                 .defaultAdvisors(advisor -> advisor.param(
                         ChatClientAttributes.TOOL_CALLING_ADVISOR_AUTO_REGISTER.getKey(), false))
                 .build();
         this.toolCallingManager = toolCallingManager;
-        this.toolCallbacks = ToolCallbacks.from(weatherTool);
-        this.maxRound = maxRound;
+        this.toolCallbacks = ToolCallbacks.from(weatherTool, chengduTripTool);
     }
 
     public String react(String userQuestion, ReActListener listener) {
         // 1. 构建用户Message
         List<Message> messages = new ArrayList<>();
+        messages.add(new SystemMessage(this.systemMessage));
         messages.add(new UserMessage(userQuestion));
 
         ToolCallingChatOptions toolOptions = ToolCallingChatOptions.builder()

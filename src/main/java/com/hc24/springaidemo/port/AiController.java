@@ -1,4 +1,6 @@
-package com.hc24.springaidemo;
+package com.hc24.springaidemo.port;
+
+import com.hc24.springaidemo.tool.WeatherTool;
 
 
 

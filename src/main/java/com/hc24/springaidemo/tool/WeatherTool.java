@@ -1,4 +1,4 @@
-package com.hc24.springaidemo;
+package com.hc24.springaidemo.tool;
 
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.stereotype.Component;

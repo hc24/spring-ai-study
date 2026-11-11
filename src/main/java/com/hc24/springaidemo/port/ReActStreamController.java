@@ -1,4 +1,6 @@
-package com.hc24.springaidemo;
+package com.hc24.springaidemo.port;
+
+import com.hc24.springaidemo.agent.ReActAgent;
 
 import jakarta.annotation.PreDestroy;
 import org.springframework.ai.chat.messages.AssistantMessage;
