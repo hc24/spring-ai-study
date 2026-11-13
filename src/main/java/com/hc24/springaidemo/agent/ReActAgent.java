@@ -1,8 +1,5 @@
 package com.hc24.springaidemo.agent;
 
-import com.hc24.springaidemo.tool.TripTool;
-import com.hc24.springaidemo.tool.WeatherTool;
-
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.ChatClientAttributes;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -16,7 +13,6 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.model.tool.ToolCallingChatOptions;
 import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.model.tool.ToolExecutionResult;
-import org.springframework.ai.support.ToolCallbacks;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -41,15 +37,15 @@ public class ReActAgent {
     @Value("${react.system-message}")
     private String systemMessage;
 
-    public ReActAgent(ChatModel chatModel, WeatherTool weatherTool, TripTool chengduTripTool,
-            ToolCallingManager toolCallingManager) {
+    public ReActAgent(ChatModel chatModel, ToolCatalog toolCatalog, ToolCallingManager toolCallingManager) {
         // Keep tool execution in this loop. ChatClient would otherwise run tools itself.
         this.chatClient = ChatClient.builder(chatModel)
                 .defaultAdvisors(advisor -> advisor.param(
                         ChatClientAttributes.TOOL_CALLING_ADVISOR_AUTO_REGISTER.getKey(), false))
                 .build();
         this.toolCallingManager = toolCallingManager;
-        this.toolCallbacks = ToolCallbacks.from(weatherTool, chengduTripTool);
+        // 内部 @Tool、外部 REST 适配工具、外部 MCP 工具统一由 ToolCatalog 提供
+        this.toolCallbacks = toolCatalog.getToolCallbacks();
     }
 
     public String react(String userQuestion, ReActListener listener) {

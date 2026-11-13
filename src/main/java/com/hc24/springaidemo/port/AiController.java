@@ -26,6 +26,8 @@ public class AiController {
         return chatClient.prompt(msg).call().content();
     }
 
+    // 框架自动工具调用的并列演示路径，仍只挂 1 个内部工具；
+    // 含外部工具的统一工具集见 /react 与 /react/stream（由 ToolCatalog 提供）
     @GetMapping("/toolAgent")
     public String agentDemo(String question){
         return chatClient.prompt(question)

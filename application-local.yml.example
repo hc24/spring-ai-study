@@ -1,0 +1,7 @@
+# 示例：复制为 application-local.yml 并填入真实密钥。
+# application-local.yml 会被 .gitignore 忽略；application.yml 已从该文件导入配置，
+# 因此启动无需额外设置环境变量。
+spring:
+  ai:
+    openai:
+      api-key: sk-REPLACE_ME

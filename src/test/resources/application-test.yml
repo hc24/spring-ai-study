@@ -1,0 +1,19 @@
+# 测试环境：彻底关闭 MCP 与外部 HTTP 依赖，保证 contextLoads() 稳定通过
+spring:
+  ai:
+    openai:
+      # 占位即可，仅用于让 ChatModel 自动配置正常创建，测试不会发起真实调用
+      api-key: sk-test-placeholder
+    mcp:
+      client:
+        enabled: false
+
+app:
+  mcp-enabled: false
+  external:
+    # 故意指向不可达端口，验证测试期间不会真的发起外部请求
+    base-url: http://127.0.0.1:1/mock
+    connect-timeout: 100ms
+    read-timeout: 100ms
+  external-mock:
+    enabled: false

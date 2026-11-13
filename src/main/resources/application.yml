@@ -1,15 +1,62 @@
 spring:
   application:
     name: spring-ai-demo
+  # 本地密钥覆盖文件：放在项目根目录，既不入库也不打进 jar；文件不存在时不影响启动。
+  # 从其它目录运行 jar 时读不到该文件，改用 OPENAI_API_KEY 环境变量即可。
+  config:
+    import: optional:file:./application-local.yml
 
   ai:
     openai:
-      api-key: sk-*****
+      # 真实密钥放 application-local.yml 或用环境变量注入，切勿写进版本库
+      api-key: ${OPENAI_API_KEY:}
       base-url: https://tokenhub.tencentmaas.com/v1
       chat:
         model: hy3
         temperature: 0.7
 
+    # ---------------- MCP 客户端：连接外部 MCP Server ----------------
+    mcp:
+      client:
+        # 默认关闭：starter 的 enabled 默认值为 true，显式关掉可避免启动时连接外部服务
+        enabled: ${MCP_ENABLED:false}
+        type: SYNC
+        # 不在启动期强制 initialize：SDK 会在首次 listTools() 时懒初始化，
+        # 连接失败因此落在 ToolCatalog 的 try/catch 内，只跳过该工具源而不影响应用启动
+        initialized: false
+        request-timeout: 10s
+        toolcallback:
+          enabled: true
+        stdio:
+          connections:
+            local-weather:
+              # stdio 连接参数只有 command/args/env，没有 cwd，因此一律用绝对路径
+              command: ${MCP_STDIO_COMMAND:C:/Users/ThinkPad/.workbuddy/binaries/node/versions/22.22.2-6/node.exe}
+              args:
+                - D:/projects/my-node-app/src/server.js
+        # 远程 Streamable HTTP 连接（需要时再打开，默认不留任何连接）：
+        # streamable-http:
+        #   connections:
+        #     remote:
+        #       url: ${MCP_HTTP_URL:}
+        #       endpoint: /mcp
+        # 注意：2.0.1 的 ConnectionParameters 只有 url/endpoint，不支持 headers，
+        # 带 token 的远程服务需自定义 transport/customizer，超出本次最小闭环。
+        # SSE 配置（spring.ai.mcp.client.sse）自 2.0.0 起已被标记为 @Deprecated。
+
+# ---------------- 应用侧外部工具配置 ----------------
+app:
+  # 应用侧二次开关，默认与 MCP_ENABLED 联动；关闭时统一工具目录跳过 MCP 收集
+  mcp-enabled: ${APP_MCP_ENABLED:${MCP_ENABLED:false}}
+  external:
+    # 自写 REST 适配层的目标地址，默认指向本应用内的验证用 mock 端点
+    base-url: ${EXTERNAL_BASE_URL:http://localhost:8080/mock}
+    connect-timeout: 2s
+    read-timeout: 3s
+  external-mock:
+    # 仅为「最小闭环」提供可验证的本地 HTTP 目标，生产环境应置为 false
+    enabled: ${EXTERNAL_MOCK_ENABLED:true}
+
 react:
   max-round: 8
-  system-message: "你是旅行助手。规划出行时请调用天气、酒店、小吃和景点工具，再根据工具结果给出具体建议。"
+  system-message: "你是旅行助手。规划出行时请调用天气、酒店、小吃和景点等内部工具，也可调用外部 REST 与 MCP 工具，再根据工具结果给出具体建议。"

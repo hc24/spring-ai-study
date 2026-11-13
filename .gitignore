@@ -31,3 +31,12 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### 本地密钥与私有配置（禁止入库） ###
+**/application-local.yml
+*.local
+.env
+
+### WorkBuddy 本机工作区数据（记忆/会话记录，非项目源码） ###
+.workbuddy/
+
