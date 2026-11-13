@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: spring-ai-demo
+
+  ai:
+    openai:
+      api-key: sk-*****
+      base-url: https://tokenhub.tencentmaas.com/v1
+      chat:
+        model: hy3
+        temperature: 0.7
+
+react:
+  max-round: 8
+  system-message: "你是旅行助手。规划出行时请调用天气、酒店、小吃和景点工具，再根据工具结果给出具体建议。"
