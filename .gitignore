@@ -32,6 +32,10 @@ build/
 ### VS Code ###
 .vscode/
 
+### Desktop ###
+node_modules/
+dist/
+
 ### 本地密钥与私有配置（禁止入库） ###
 **/application-local.yml
 *.local

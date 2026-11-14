@@ -1,15 +1,14 @@
 spring:
   application:
     name: spring-ai-demo
-  # 本地密钥覆盖文件：放在项目根目录，既不入库也不打进 jar；文件不存在时不影响启动。
-  # 从其它目录运行 jar 时读不到该文件，改用 OPENAI_API_KEY 环境变量即可。
+  # Local secrets live in application-local.yml next to the process working directory.
+  # Also accepts ./spring-ai-study-agent/application-local.yml when launched from the repo root.
+  # SPRING_AI_OPENAI_API_KEY overrides the file when that environment variable is set.
   config:
-    import: optional:file:./application-local.yml
+    import: optional:file:./application-local.yml,optional:file:./spring-ai-study-agent/application-local.yml
 
   ai:
     openai:
-      # 真实密钥放 application-local.yml 或用环境变量注入，切勿写进版本库
-      api-key: ${OPENAI_API_KEY:}
       base-url: https://tokenhub.tencentmaas.com/v1
       chat:
         model: hy3

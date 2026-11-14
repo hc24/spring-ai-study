@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>spring-ai-study</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: #f4f5f7;
+      color: #1f2328;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 14px 18px;
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      font-weight: 600;
+    }
+    #messages {
+      flex: 1;
+      overflow: auto;
+      padding: 16px 18px;
+    }
+    .msg {
+      max-width: 92%;
+      margin: 0 0 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.45;
+    }
+    .user { margin-left: auto; background: #2563eb; color: #fff; }
+    .answer { background: #fff; border: 1px solid #e5e7eb; white-space: normal; }
+    .markdown > :first-child { margin-top: 0; }
+    .markdown > :last-child { margin-bottom: 0; }
+    .markdown p { margin: 0.4em 0; }
+    .markdown ul, .markdown ol { margin: 0.4em 0; padding-left: 1.3em; }
+    .markdown code {
+      font-family: Consolas, monospace;
+      background: #f3f4f6;
+      padding: 0 0.25em;
+      border-radius: 4px;
+    }
+    .markdown pre {
+      background: #f3f4f6;
+      padding: 8px 10px;
+      border-radius: 8px;
+      overflow: auto;
+    }
+    .markdown pre code { background: transparent; padding: 0; }
+    .markdown a { color: #2563eb; }
+    .tool_call, .tool_result { background: #eef2ff; color: #3730a3; font-size: 13px; }
+    .tools {
+      max-width: 92%;
+      margin: 0 0 10px;
+      border: 1px solid #e0e7ff;
+      border-radius: 10px;
+      background: #f8fafc;
+    }
+    .tools summary {
+      cursor: pointer;
+      padding: 8px 12px;
+      color: #4338ca;
+      font-size: 13px;
+    }
+    .tools .msg { margin: 0 8px 8px; }
+    .error { background: #fef2f2; color: #b91c1c; }
+    form {
+      display: flex;
+      gap: 8px;
+      padding: 12px 18px 16px;
+      background: #fff;
+      border-top: 1px solid #e5e7eb;
+    }
+    input {
+      flex: 1;
+      padding: 10px 12px;
+      border: 1px solid #d0d7de;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    button {
+      padding: 10px 16px;
+      border: 0;
+      border-radius: 8px;
+      background: #2563eb;
+      color: #fff;
+      font-size: 14px;
+    }
+    button:disabled { background: #93c5fd; }
+    .status {
+      margin: 0 0 10px;
+      color: #6b7280;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <header>旅行助手</header>
+  <div id="messages"></div>
+  <form id="composer">
+    <input id="question" type="text" placeholder="想去哪里？" autocomplete="off">
+    <button id="send" type="submit">发送</button>
+  </form>
+  <script src="node_modules/markdown-it/dist/markdown-it.min.js"></script>
+  <script src="node_modules/dompurify/dist/purify.min.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>
