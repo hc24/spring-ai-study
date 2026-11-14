@@ -28,6 +28,27 @@ function renderAnswer(text) {
 
 let toolPanel = null;
 let toolCount = 0;
+let answerBubble = null;
+let answerText = '';
+
+function appendDelta(text) {
+  if (!answerBubble) {
+    answerBubble = document.createElement('div');
+    answerBubble.className = 'msg answer markdown';
+    messages.appendChild(answerBubble);
+  }
+  answerText += text;
+  const html = renderAnswer(answerText);
+  if (html != null) {
+    answerBubble.innerHTML = html;
+  } else {
+    answerBubble.textContent = answerText;
+  }
+  if (!status.hidden) {
+    messages.appendChild(status);
+  }
+  messages.scrollTop = messages.scrollHeight;
+}
 
 function appendTool(kind, text) {
   if (!toolPanel) {
@@ -83,6 +104,10 @@ function setBusy(busy) {
 }
 
 window.desktop.onEvent((payload) => {
+  if (payload.event === 'delta') {
+    appendDelta(payload.data || '');
+    return;
+  }
   const kind = payload.event === 'answer' ? 'answer' : payload.event;
   append(kind === 'message' ? 'answer' : kind, payload.data || '');
 });
@@ -99,6 +124,8 @@ form.addEventListener('submit', (event) => {
   question.value = '';
   toolPanel = null;
   toolCount = 0;
+  answerBubble = null;
+  answerText = '';
   setBusy(true);
   window.desktop.ask(text, conversationId);
 });
@@ -107,6 +134,8 @@ newChat.addEventListener('click', () => {
   conversationId = crypto.randomUUID();
   toolPanel = null;
   toolCount = 0;
+  answerBubble = null;
+  answerText = '';
   messages.replaceChildren();
   setBusy(false);
   question.focus();

@@ -3,11 +3,7 @@ package com.hc24.springaidemo.agent;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.ChatClientAttributes;
 import org.springframework.ai.chat.memory.ChatMemory;
-import org.springframework.ai.chat.messages.AssistantMessage;
-import org.springframework.ai.chat.messages.Message;
-import org.springframework.ai.chat.messages.SystemMessage;
-import org.springframework.ai.chat.messages.ToolResponseMessage;
-import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.messages.*;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
@@ -22,8 +18,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Hand-written tool loop, kept as a readable ReAct exercise. HTTP endpoints use
+ * {@link AdvisorReActAgent}. Each model call here is one round, so callers can
+ * observe tool calls before the next round starts.
+ */
 @Component
-public class ReActAgent {
+public class ManualReActAgent {
 
     public static final ReActListener NOOP = new ReActListener() {
     };
@@ -39,8 +40,8 @@ public class ReActAgent {
     @Value("${react.system-message}")
     private String systemMessage;
 
-    public ReActAgent(ChatModel chatModel, ToolCatalog toolCatalog, ToolCallingManager toolCallingManager,
-            ChatMemory chatMemory) {
+    public ManualReActAgent(ChatModel chatModel, ToolCatalog toolCatalog, ToolCallingManager toolCallingManager,
+                            ChatMemory chatMemory) {
         // Keep tool execution in this loop. ChatClient would otherwise run tools itself.
         this.chatClient = ChatClient.builder(chatModel)
                 .defaultAdvisors(advisor -> advisor.param(
@@ -48,7 +49,6 @@ public class ReActAgent {
                 .build();
         this.toolCallingManager = toolCallingManager;
         this.chatMemory = chatMemory;
-        // 内部 @Tool、外部 REST 适配工具、外部 MCP 工具统一由 ToolCatalog 提供
         this.toolCallbacks = toolCatalog.getToolCallbacks();
     }
 
@@ -76,30 +76,25 @@ public class ReActAgent {
                 .toolCallbacks(this.toolCallbacks)
                 .build();
 
-        // 2. 循环ReAct
         for (int i = 0; i < this.maxRound; i++) {
-            //  ① 先把用户message和工具扔给模型
             ChatResponse response = chatClient.prompt()
                     .messages(messages)
                     .tools((Object[]) this.toolCallbacks)
                     .call()
                     .chatResponse();
 
-            // ② 解析模型返回的Message
             AssistantMessage assistantMsg = response != null && response.getResult() != null
                     ? response.getResult().getOutput() : null;
             if (assistantMsg == null) {
                 return null;
             }
 
-            // ③ 模型告诉Agent没有工具调用
             if (!assistantMsg.hasToolCalls()) {
                 messages.add(assistantMsg);
                 String text = assistantMsg.getText();
                 return text != null ? text : "";
             }
 
-            // ③ 模型告诉Agent需要工具调用
             // History passed in must not already contain this assistant message.
             // executeToolCalls appends the assistant message and the tool response.
             for (AssistantMessage.ToolCall toolCall : assistantMsg.getToolCalls()) {
@@ -111,7 +106,6 @@ public class ReActAgent {
             messages.addAll(toolResult.conversationHistory());
             publishToolResults(messages, listener);
 
-            // ④ 工具直接返回结果了
             if (toolResult.returnDirect()) {
                 return ToolExecutionResult.buildGenerations(toolResult).stream()
                         .map(generation -> generation.getOutput().getText())

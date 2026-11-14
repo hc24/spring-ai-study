@@ -1,10 +1,8 @@
 package com.hc24.springaidemo.port;
 
-import com.hc24.springaidemo.agent.ReActAgent;
+import com.hc24.springaidemo.agent.AdvisorReActAgent;
 
 import jakarta.annotation.PreDestroy;
-import org.springframework.ai.chat.messages.AssistantMessage;
-import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -18,11 +16,11 @@ import java.util.concurrent.Executors;
 @RestController
 public class ReActStreamController {
 
-    private final ReActAgent reActAgent;
+    private final AdvisorReActAgent advisorReActAgent;
     private final ExecutorService streamExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
-    public ReActStreamController(ReActAgent reActAgent) {
-        this.reActAgent = reActAgent;
+    public ReActStreamController(AdvisorReActAgent advisorReActAgent) {
+        this.advisorReActAgent = advisorReActAgent;
     }
 
     @PreDestroy
@@ -39,18 +37,7 @@ public class ReActStreamController {
 
     private void emitReact(SseEmitter emitter, String conversationId, String userQuestion) {
         try {
-            String answer = this.reActAgent.react(conversationId, userQuestion, new ReActAgent.ReActListener() {
-                @Override
-                public void onToolCall(AssistantMessage.ToolCall toolCall) {
-                    send(emitter, "tool_call", toolCall.name() + " " + toolCall.arguments());
-                }
-
-                @Override
-                public void onToolResult(ToolResponseMessage.ToolResponse toolResponse) {
-                    send(emitter, "tool_result", toolResponse.responseData());
-                }
-            });
-            send(emitter, "answer", answer);
+            this.advisorReActAgent.stream(conversationId, userQuestion, token -> send(emitter, "delta", token));
             emitter.complete();
         }
         catch (Exception ex) {

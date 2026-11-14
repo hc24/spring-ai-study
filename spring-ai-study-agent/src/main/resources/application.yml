@@ -55,3 +55,8 @@ react:
   max-round: 8
   memory-max-messages: 40
   system-message: "你是旅行助手。规划出行时请调用天气、酒店、小吃和景点等内部工具，也可调用外部 REST 与 MCP 工具，再根据工具结果给出具体建议。"
+
+logging:
+  level:
+    org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor: DEBUG
+    org.springframework.ai.model.tool.DefaultToolCallingManager: DEBUG
