@@ -19,6 +19,14 @@
       background: #fff;
       border-bottom: 1px solid #e5e7eb;
       font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header button {
+      background: #eef2ff;
+      color: #3730a3;
+      font-weight: 500;
     }
     #messages {
       flex: 1;
@@ -101,7 +109,10 @@
   </style>
 </head>
 <body>
-  <header>旅行助手</header>
+  <header>
+    <span>旅行助手</span>
+    <button id="new-chat" type="button">新对话</button>
+  </header>
   <div id="messages"></div>
   <form id="composer">
     <input id="question" type="text" placeholder="想去哪里？" autocomplete="off">

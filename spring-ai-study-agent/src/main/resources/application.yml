@@ -18,21 +18,16 @@ spring:
     mcp:
       client:
         # 默认关闭：starter 的 enabled 默认值为 true，显式关掉可避免启动时连接外部服务
-        enabled: ${MCP_ENABLED:false}
+        enabled: true
         type: SYNC
-        # 不在启动期强制 initialize：SDK 会在首次 listTools() 时懒初始化，
-        # 连接失败因此落在 ToolCatalog 的 try/catch 内，只跳过该工具源而不影响应用启动
+        # Do not initialize at startup. The first listTools() call connects, and
+        # ToolCatalog skips this server if npx or the package is unavailable.
         initialized: false
         request-timeout: 10s
         toolcallback:
           enabled: true
         stdio:
-          connections:
-            local-weather:
-              # stdio 连接参数只有 command/args/env，没有 cwd，因此一律用绝对路径
-              command: ${MCP_STDIO_COMMAND:C:/Users/ThinkPad/.workbuddy/binaries/node/versions/22.22.2-6/node.exe}
-              args:
-                - D:/projects/my-node-app/src/server.js
+          servers-configuration: classpath:mcp-servers.json
         # 远程 Streamable HTTP 连接（需要时再打开，默认不留任何连接）：
         # streamable-http:
         #   connections:
@@ -46,7 +41,7 @@ spring:
 # ---------------- 应用侧外部工具配置 ----------------
 app:
   # 应用侧二次开关，默认与 MCP_ENABLED 联动；关闭时统一工具目录跳过 MCP 收集
-  mcp-enabled: ${APP_MCP_ENABLED:${MCP_ENABLED:false}}
+  mcp-enabled: true
   external:
     # 自写 REST 适配层的目标地址，默认指向本应用内的验证用 mock 端点
     base-url: ${EXTERNAL_BASE_URL:http://localhost:8080/mock}
@@ -58,4 +53,5 @@ app:
 
 react:
   max-round: 8
+  memory-max-messages: 40
   system-message: "你是旅行助手。规划出行时请调用天气、酒店、小吃和景点等内部工具，也可调用外部 REST 与 MCP 工具，再根据工具结果给出具体建议。"

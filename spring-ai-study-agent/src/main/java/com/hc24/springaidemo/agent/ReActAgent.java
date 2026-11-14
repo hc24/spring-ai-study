@@ -2,6 +2,7 @@ package com.hc24.springaidemo.agent;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.ChatClientAttributes;
+import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -29,6 +30,7 @@ public class ReActAgent {
 
     private final ChatClient chatClient;
     private final ToolCallingManager toolCallingManager;
+    private final ChatMemory chatMemory;
     private final ToolCallback[] toolCallbacks;
 
     @Value("${react.max-round}")
@@ -37,23 +39,39 @@ public class ReActAgent {
     @Value("${react.system-message}")
     private String systemMessage;
 
-    public ReActAgent(ChatModel chatModel, ToolCatalog toolCatalog, ToolCallingManager toolCallingManager) {
+    public ReActAgent(ChatModel chatModel, ToolCatalog toolCatalog, ToolCallingManager toolCallingManager,
+            ChatMemory chatMemory) {
         // Keep tool execution in this loop. ChatClient would otherwise run tools itself.
         this.chatClient = ChatClient.builder(chatModel)
                 .defaultAdvisors(advisor -> advisor.param(
                         ChatClientAttributes.TOOL_CALLING_ADVISOR_AUTO_REGISTER.getKey(), false))
                 .build();
         this.toolCallingManager = toolCallingManager;
+        this.chatMemory = chatMemory;
         // 内部 @Tool、外部 REST 适配工具、外部 MCP 工具统一由 ToolCatalog 提供
         this.toolCallbacks = toolCatalog.getToolCallbacks();
     }
 
     public String react(String userQuestion, ReActListener listener) {
-        // 1. 构建用户Message
+        return react(null, userQuestion, listener);
+    }
+
+    public String react(String conversationId, String userQuestion, ReActListener listener) {
+        List<Message> history = historyOf(conversationId);
         List<Message> messages = new ArrayList<>();
         messages.add(new SystemMessage(this.systemMessage));
+        messages.addAll(history);
         messages.add(new UserMessage(userQuestion));
+        int turnStart = messages.size() - 1;
 
+        String answer = runTurn(messages, listener);
+        if (answer != null) {
+            remember(conversationId, messages.subList(turnStart, messages.size()));
+        }
+        return answer != null ? answer : "模型未返回结果";
+    }
+
+    private String runTurn(List<Message> messages, ReActListener listener) {
         ToolCallingChatOptions toolOptions = ToolCallingChatOptions.builder()
                 .toolCallbacks(this.toolCallbacks)
                 .build();
@@ -71,11 +89,12 @@ public class ReActAgent {
             AssistantMessage assistantMsg = response != null && response.getResult() != null
                     ? response.getResult().getOutput() : null;
             if (assistantMsg == null) {
-                return "模型未返回结果";
+                return null;
             }
 
             // ③ 模型告诉Agent没有工具调用
             if (!assistantMsg.hasToolCalls()) {
+                messages.add(assistantMsg);
                 String text = assistantMsg.getText();
                 return text != null ? text : "";
             }
@@ -88,7 +107,8 @@ public class ReActAgent {
             }
             ToolExecutionResult toolResult = toolCallingManager.executeToolCalls(
                     new Prompt(messages, toolOptions), response);
-            messages = new ArrayList<>(toolResult.conversationHistory());
+            messages.clear();
+            messages.addAll(toolResult.conversationHistory());
             publishToolResults(messages, listener);
 
             // ④ 工具直接返回结果了
@@ -100,6 +120,22 @@ public class ReActAgent {
             }
         }
         return "达到最大思考轮次，任务终止";
+    }
+
+    private List<Message> historyOf(String conversationId) {
+        if (conversationId == null || conversationId.isBlank()) {
+            return List.of();
+        }
+        return this.chatMemory.get(conversationId).stream()
+                .filter(message -> !(message instanceof SystemMessage))
+                .toList();
+    }
+
+    private void remember(String conversationId, List<Message> turn) {
+        if (conversationId == null || conversationId.isBlank() || turn.isEmpty()) {
+            return;
+        }
+        this.chatMemory.add(conversationId, new ArrayList<>(turn));
     }
 
     private static void publishToolResults(List<Message> messages, ReActListener listener) {

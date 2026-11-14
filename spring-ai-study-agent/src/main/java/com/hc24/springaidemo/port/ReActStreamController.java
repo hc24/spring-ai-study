@@ -31,15 +31,15 @@ public class ReActStreamController {
     }
 
     @GetMapping(path = "/react/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter reactStream(String question) {
+    public SseEmitter reactStream(String question, String conversationId) {
         SseEmitter emitter = new SseEmitter(Duration.ofMinutes(5).toMillis());
-        this.streamExecutor.execute(() -> emitReact(emitter, question));
+        this.streamExecutor.execute(() -> emitReact(emitter, conversationId, question));
         return emitter;
     }
 
-    private void emitReact(SseEmitter emitter, String userQuestion) {
+    private void emitReact(SseEmitter emitter, String conversationId, String userQuestion) {
         try {
-            String answer = this.reActAgent.react(userQuestion, new ReActAgent.ReActListener() {
+            String answer = this.reActAgent.react(conversationId, userQuestion, new ReActAgent.ReActListener() {
                 @Override
                 public void onToolCall(AssistantMessage.ToolCall toolCall) {
                     send(emitter, "tool_call", toolCall.name() + " " + toolCall.arguments());

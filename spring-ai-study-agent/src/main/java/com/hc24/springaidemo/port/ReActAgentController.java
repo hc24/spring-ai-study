@@ -15,8 +15,8 @@ public class ReActAgentController {
     }
 
     @GetMapping("/react")
-    public String reactAgent(String question) {
-        return this.reActAgent.react(question, ReActAgent.NOOP);
+    public String reactAgent(String question, String conversationId) {
+        return this.reActAgent.react(conversationId, question, ReActAgent.NOOP);
     }
 
 }

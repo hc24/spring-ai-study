@@ -31,11 +31,15 @@ function parseEvent(block) {
   return { event: eventName, data: dataLines.join('\n') };
 }
 
-function streamQuestion(question, sender) {
+function streamQuestion(question, conversationId, sender) {
+  const query = new URLSearchParams({ question: question });
+  if (conversationId) {
+    query.set('conversationId', conversationId);
+  }
   const request = http.get({
     hostname: AGENT_HOST,
     port: AGENT_PORT,
-    path: '/react/stream?question=' + encodeURIComponent(question),
+    path: '/react/stream?' + query.toString(),
     headers: { Accept: 'text/event-stream' }
   }, (response) => {
     if (response.statusCode !== 200) {
@@ -80,8 +84,10 @@ function streamQuestion(question, sender) {
 }
 
 app.whenReady().then(() => {
-  ipcMain.on('ask', (event, question) => {
-    streamQuestion(String(question || ''), event.sender);
+  ipcMain.on('ask', (event, payload) => {
+    const question = typeof payload === 'string' ? payload : payload.question;
+    const conversationId = typeof payload === 'string' ? '' : payload.conversationId;
+    streamQuestion(String(question || ''), String(conversationId || ''), event.sender);
   });
   createWindow();
 });

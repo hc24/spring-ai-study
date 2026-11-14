@@ -2,6 +2,8 @@ const messages = document.getElementById('messages');
 const form = document.getElementById('composer');
 const question = document.getElementById('question');
 const send = document.getElementById('send');
+const newChat = document.getElementById('new-chat');
+let conversationId = crypto.randomUUID();
 const status = document.createElement('div');
 status.className = 'status';
 status.hidden = true;
@@ -98,5 +100,14 @@ form.addEventListener('submit', (event) => {
   toolPanel = null;
   toolCount = 0;
   setBusy(true);
-  window.desktop.ask(text);
+  window.desktop.ask(text, conversationId);
+});
+
+newChat.addEventListener('click', () => {
+  conversationId = crypto.randomUUID();
+  toolPanel = null;
+  toolCount = 0;
+  messages.replaceChildren();
+  setBusy(false);
+  question.focus();
 });

@@ -1,8 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('desktop', {
-  ask(question) {
-    ipcRenderer.send('ask', question);
+  ask(question, conversationId) {
+    ipcRenderer.send('ask', { question, conversationId });
   },
   onEvent(callback) {
     ipcRenderer.on('agent-event', (_event, payload) => callback(payload));
