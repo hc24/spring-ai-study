@@ -15,8 +15,8 @@ public class ReActAgentController {
     }
 
     @GetMapping("/react")
-    public String reactAgent(String question, String conversationId) {
-        return this.advisorReActAgent.chat(conversationId, question);
+    public String reactAgent(String question, String conversationId, String root) {
+        return this.advisorReActAgent.chat(conversationId, question, root);
     }
 
 }

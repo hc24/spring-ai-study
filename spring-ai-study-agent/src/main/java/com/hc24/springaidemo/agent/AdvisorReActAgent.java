@@ -1,5 +1,6 @@
 package com.hc24.springaidemo.agent;
 
+import com.hc24.springaidemo.tool.LocalFilesTool;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
@@ -9,6 +10,7 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -35,25 +37,29 @@ public class AdvisorReActAgent {
                 .build();
     }
 
-    public String chat(String conversationId, String question) {
-        String content = prompt(conversationId, question).call().content();
+    public String chat(String conversationId, String question, String root) {
+        String content = prompt(conversationId, question, root).call().content();
         return content != null ? content : "";
     }
 
-    public void stream(String conversationId, String question, Consumer<String> onDelta) {
-        prompt(conversationId, question).stream()
+    public void stream(String conversationId, String question, String root, Consumer<String> onDelta) {
+        prompt(conversationId, question, root).stream()
                 .content()
                 .filter(token -> token != null && !token.isEmpty())
                 .doOnNext(onDelta)
                 .blockLast();
     }
 
-    private ChatClient.ChatClientRequestSpec prompt(String conversationId, String question) {
+    private ChatClient.ChatClientRequestSpec prompt(String conversationId, String question, String root) {
         String id = conversationId == null || conversationId.isBlank() ? UUID.randomUUID().toString() : conversationId;
-        return this.chatClient.prompt()
-                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, id))
+        ChatClient.ChatClientRequestSpec spec = this.chatClient.prompt()
+                .advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, id))
                 .system(this.systemMessage)
                 .user(question);
+        if (root != null && !root.isBlank()) {
+            spec = spec.toolContext(Map.of(LocalFilesTool.ROOT_KEY, root));
+        }
+        return spec;
     }
 
 }

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const {app, BrowserWindow, dialog, ipcMain} = require('electron');
 const http = require('http');
 const path = require('path');
 
@@ -31,10 +31,13 @@ function parseEvent(block) {
   return { event: eventName, data: dataLines.join('\n') };
 }
 
-function streamQuestion(question, conversationId, sender) {
+function streamQuestion(question, conversationId, root, sender) {
   const query = new URLSearchParams({ question: question });
   if (conversationId) {
     query.set('conversationId', conversationId);
+  }
+  if (root) {
+    query.set('root', root);
   }
   const request = http.get({
     hostname: AGENT_HOST,
@@ -84,10 +87,18 @@ function streamQuestion(question, conversationId, sender) {
 }
 
 app.whenReady().then(() => {
+  ipcMain.handle('choose-directory', async () => {
+    const result = await dialog.showOpenDialog({properties: ['openDirectory']});
+    if (result.canceled || result.filePaths.length === 0) {
+      return '';
+    }
+    return result.filePaths[0];
+  });
   ipcMain.on('ask', (event, payload) => {
     const question = typeof payload === 'string' ? payload : payload.question;
     const conversationId = typeof payload === 'string' ? '' : payload.conversationId;
-    streamQuestion(String(question || ''), String(conversationId || ''), event.sender);
+    const root = typeof payload === 'string' ? '' : payload.root;
+    streamQuestion(String(question || ''), String(conversationId || ''), String(root || ''), event.sender);
   });
   createWindow();
 });

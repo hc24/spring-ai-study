@@ -29,15 +29,15 @@ public class ReActStreamController {
     }
 
     @GetMapping(path = "/react/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter reactStream(String question, String conversationId) {
+    public SseEmitter reactStream(String question, String conversationId, String root) {
         SseEmitter emitter = new SseEmitter(Duration.ofMinutes(5).toMillis());
-        this.streamExecutor.execute(() -> emitReact(emitter, conversationId, question));
+        this.streamExecutor.execute(() -> emitReact(emitter, conversationId, question, root));
         return emitter;
     }
 
-    private void emitReact(SseEmitter emitter, String conversationId, String userQuestion) {
+    private void emitReact(SseEmitter emitter, String conversationId, String userQuestion, String root) {
         try {
-            this.advisorReActAgent.stream(conversationId, userQuestion, token -> send(emitter, "delta", token));
+            this.advisorReActAgent.stream(conversationId, userQuestion, root, token -> send(emitter, "delta", token));
             emitter.complete();
         }
         catch (Exception ex) {

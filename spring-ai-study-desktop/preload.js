@@ -1,8 +1,11 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('desktop', {
-  ask(question, conversationId) {
-    ipcRenderer.send('ask', { question, conversationId });
+  ask(question, conversationId, root) {
+    ipcRenderer.send('ask', {question, conversationId, root});
+  },
+  chooseDirectory() {
+    return ipcRenderer.invoke('choose-directory');
   },
   onEvent(callback) {
     ipcRenderer.on('agent-event', (_event, payload) => callback(payload));

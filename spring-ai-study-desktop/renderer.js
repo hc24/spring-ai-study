@@ -4,6 +4,7 @@ const question = document.getElementById('question');
 const send = document.getElementById('send');
 const newChat = document.getElementById('new-chat');
 let conversationId = crypto.randomUUID();
+let grantedRoot = '';
 const status = document.createElement('div');
 status.className = 'status';
 status.hidden = true;
@@ -127,7 +128,21 @@ form.addEventListener('submit', (event) => {
   answerBubble = null;
   answerText = '';
   setBusy(true);
-  window.desktop.ask(text, conversationId);
+  window.desktop.ask(text, conversationId, grantedRoot);
+});
+
+document.getElementById('choose-root').addEventListener('click', async () => {
+  const selected = await window.desktop.chooseDirectory();
+  if (!selected) {
+    return;
+  }
+  grantedRoot = selected;
+  document.getElementById('root-label').textContent = selected;
+});
+
+document.getElementById('clear-root').addEventListener('click', () => {
+  grantedRoot = '';
+  document.getElementById('root-label').textContent = '未选择目录';
 });
 
 newChat.addEventListener('click', () => {

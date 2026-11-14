@@ -28,6 +28,29 @@
       color: #3730a3;
       font-weight: 500;
     }
+
+    #grant {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      color: #4b5563;
+      font-size: 13px;
+    }
+
+    #grant button {
+      background: #eef2ff;
+      color: #3730a3;
+    }
+
+    #root-label {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     #messages {
       flex: 1;
       overflow: auto;
@@ -113,6 +136,11 @@
     <span>旅行助手</span>
     <button id="new-chat" type="button">新对话</button>
   </header>
+  <div id="grant">
+    <span id="root-label">未选择目录</span>
+    <button id="choose-root" type="button">选择目录</button>
+    <button id="clear-root" type="button">清除</button>
+  </div>
   <div id="messages"></div>
   <form id="composer">
     <input id="question" type="text" placeholder="想去哪里？" autocomplete="off">
