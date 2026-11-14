@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 
 // 工具类
 @Component
-public class WeatherTool {
+public class WeatherTool implements LocalTool {
     @Tool(description = "查询指定城市当前天气，参数city是城市中文名")
     public String getWeather(String city) {
         return city + "：晴天，26℃";

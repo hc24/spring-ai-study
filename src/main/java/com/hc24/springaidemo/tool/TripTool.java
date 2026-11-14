@@ -4,7 +4,7 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.stereotype.Component;
 
 @Component
-public class TripTool {
+public class TripTool implements LocalTool {
 
     @Tool(description = "查询城市的酒店推荐。目前只有成都的模拟数据，参数city是城市中文名")
     public String getHotels(String city) {

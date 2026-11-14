@@ -1,11 +1,10 @@
 package com.hc24.springaidemo.agent;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
-import com.hc24.springaidemo.tool.ExternalApiTool;
-import com.hc24.springaidemo.tool.TripTool;
-import com.hc24.springaidemo.tool.WeatherTool;
+import com.hc24.springaidemo.tool.LocalTool;
 import org.springframework.ai.support.ToolCallbacks;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.ToolCallbackProvider;
@@ -14,8 +13,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * 统一工具目录：把内部 @Tool、外部 REST 适配工具、外部 MCP Server 的工具
- * 合并成一份 ToolCallback[]，供手写 ReAct 循环使用。
+ * Collects every {@link LocalTool} bean and, when enabled, MCP tools into one
+ * {@link ToolCallback} array for the manual ReAct loop. A new local tool only
+ * needs to implement {@link LocalTool}.
  *
  * <p>Spring AI 的 ToolCallingAutoConfiguration 会按类名刻意把
  * SyncMcpToolCallbackProvider 排除在默认 ToolCallbackResolver 之外，
@@ -29,12 +29,15 @@ public class ToolCatalog {
 
     private final ToolCallback[] toolCallbacks;
 
-    public ToolCatalog(WeatherTool weatherTool, TripTool tripTool, ExternalApiTool externalApiTool,
+    public ToolCatalog(ObjectProvider<LocalTool> localTools,
             ObjectProvider<ToolCallbackProvider> mcpProviders,
             @Value("${app.mcp-enabled:false}") boolean mcpEnabled) {
-        // 内部工具优先：按工具名去重，后加入的同名外部工具不会覆盖内部实现
+        // Local tools win on name conflicts; a later MCP tool with the same name is ignored.
         Map<String, ToolCallback> tools = new LinkedHashMap<>();
-        addAll(tools, ToolCallbacks.from(weatherTool, tripTool, externalApiTool));
+        List<LocalTool> localToolBeans = localTools.orderedStream().toList();
+        if (!localToolBeans.isEmpty()) {
+            addAll(tools, ToolCallbacks.from(localToolBeans.toArray()));
+        }
 
         if (mcpEnabled) {
             for (ToolCallbackProvider provider : mcpProviders.orderedStream().toList()) {

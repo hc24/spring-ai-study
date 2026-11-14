@@ -17,7 +17,7 @@ import org.springframework.web.client.RestClient;
  * 这样手写 ReAct 循环里仍能得到一条完整的 tool_result。</p>
  */
 @Component
-public class ExternalApiTool {
+public class ExternalApiTool implements LocalTool {
 
     private final RestClient restClient;
 
@@ -36,7 +36,7 @@ public class ExternalApiTool {
                 .build();
     }
 
-    @Tool(description = "查询外部系统的城市出行指数与推荐信息。需要外部数据或内部工具查不到该城市时使用，参数city是城市名称")
+    @Tool(description = "查询外部系统的城市出行指数与推荐信息。可以提供城市游玩的补充信息，参数city是城市名称")
     public String queryExternalCityInfo(String city) {
         try {
             String body = this.restClient.get()
