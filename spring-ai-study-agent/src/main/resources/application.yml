@@ -41,6 +41,9 @@ spring:
         # 带 token 的远程服务需自定义 transport/customizer，超出本次最小闭环。
         # SSE 配置（spring.ai.mcp.client.sse）自 2.0.0 起已被标记为 @Deprecated。
 
+rag:
+  store-file: ../data/vector-store.json
+
 # ---------------- 应用侧外部工具配置 ----------------
 app:
   rag-enabled: true

@@ -1,0 +1,14 @@
+spring:
+  main:
+    web-application-type: none
+  config:
+    import: optional:file:./application-local.yml,optional:file:../spring-ai-study-agent/application-local.yml
+  ai:
+    openai:
+      base-url: https://tokenhub.tencentmaas.com/v1
+      embedding:
+        model: kinfra-text-embedding-0.6b
+        encoding-format: float
+
+rag:
+  store-file: ../data/vector-store.json

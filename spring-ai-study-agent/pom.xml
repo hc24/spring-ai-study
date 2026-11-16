@@ -9,7 +9,7 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.hc24</groupId>
-    <artifactId>spring-ai-demo</artifactId>
+    <artifactId>spring-ai-study-agent</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>spring-ai-demo</name>
     <description>spring-ai-demo</description>
