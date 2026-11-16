@@ -1,8 +1,9 @@
 spring:
   main:
     web-application-type: none
+  # application-local.yml stays with the agent. These paths cover the indexer directory and the repo root.
   config:
-    import: optional:file:./application-local.yml,optional:file:../spring-ai-study-agent/application-local.yml
+    import: optional:file:./application-local.yml,optional:file:../spring-ai-study-agent/application-local.yml,optional:file:./spring-ai-study-agent/application-local.yml
   ai:
     openai:
       base-url: https://tokenhub.tencentmaas.com/v1
