@@ -5,11 +5,16 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
 import org.springframework.ai.chat.client.advisor.ToolCallingAdvisor;
+import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.rag.advisor.RetrievalAugmentationAdvisor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -30,13 +35,16 @@ public class AdvisorReActAgent {
     private String fileToolHint;
 
     public AdvisorReActAgent(ChatModel chatModel, ToolCatalog toolCatalog, ChatMemory chatMemory,
+                             ObjectProvider<RetrievalAugmentationAdvisor> retrievalAdvisor,
                              @Value("${react.system-message}") String systemMessage) {
         this.systemMessage = systemMessage;
+        List<Advisor> advisors = new ArrayList<>();
+        advisors.add(MessageChatMemoryAdvisor.builder(chatMemory).build());
+        retrievalAdvisor.ifAvailable(advisors::add);
+        advisors.add(SimpleLoggerAdvisor.builder().order(ToolCallingAdvisor.DEFAULT_ORDER + 1).build());
         this.chatClient = ChatClient.builder(chatModel)
                 .defaultTools((Object[]) toolCatalog.getToolCallbacks())
-                .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build(),
-                        // Inside the tool loop so each model round and tool call is logged.
-                        SimpleLoggerAdvisor.builder().order(ToolCallingAdvisor.DEFAULT_ORDER + 1).build())
+                .defaultAdvisors(advisors.toArray(Advisor[]::new))
                 .build();
     }
 
@@ -62,10 +70,9 @@ public class AdvisorReActAgent {
         ChatClient.ChatClientRequestSpec spec = this.chatClient.prompt()
                 .advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, id))
                 .system(this.systemMessage)
-                .user(userText);
-        if (granted) {
-            spec = spec.toolContext(Map.of(LocalFilesTool.ROOT_KEY, request.root()));
-        }
+                .user(userText)
+                // Tool methods declare ToolContext, so the map must exist even when no directory is granted.
+                .toolContext(Map.of(LocalFilesTool.ROOT_KEY, granted ? request.root() : ""));
         return spec;
     }
 
