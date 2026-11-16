@@ -26,6 +26,9 @@ public class AdvisorReActAgent {
     private final ChatClient chatClient;
     private final String systemMessage;
 
+    @Value("${react.file-tool-hint}")
+    private String fileToolHint;
+
     public AdvisorReActAgent(ChatModel chatModel, ToolCatalog toolCatalog, ChatMemory chatMemory,
                              @Value("${react.system-message}") String systemMessage) {
         this.systemMessage = systemMessage;
@@ -37,27 +40,31 @@ public class AdvisorReActAgent {
                 .build();
     }
 
-    public String chat(String conversationId, String question, String root) {
-        String content = prompt(conversationId, question, root).call().content();
+    public String chat(AgentRequest request) {
+        String content = prompt(request).call().content();
         return content != null ? content : "";
     }
 
-    public void stream(String conversationId, String question, String root, Consumer<String> onDelta) {
-        prompt(conversationId, question, root).stream()
+    public void stream(AgentRequest request, Consumer<String> onDelta) {
+        prompt(request).stream()
                 .content()
                 .filter(token -> token != null && !token.isEmpty())
                 .doOnNext(onDelta)
                 .blockLast();
     }
 
-    private ChatClient.ChatClientRequestSpec prompt(String conversationId, String question, String root) {
-        String id = conversationId == null || conversationId.isBlank() ? UUID.randomUUID().toString() : conversationId;
+    private ChatClient.ChatClientRequestSpec prompt(AgentRequest request) {
+        String id = request.conversationId() == null || request.conversationId().isBlank()
+                ? UUID.randomUUID().toString()
+                : request.conversationId();
+        boolean granted = request.root() != null && !request.root().isBlank();
+        String userText = granted ? this.fileToolHint + "\n" + request.question() : request.question();
         ChatClient.ChatClientRequestSpec spec = this.chatClient.prompt()
                 .advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, id))
                 .system(this.systemMessage)
-                .user(question);
-        if (root != null && !root.isBlank()) {
-            spec = spec.toolContext(Map.of(LocalFilesTool.ROOT_KEY, root));
+                .user(userText);
+        if (granted) {
+            spec = spec.toolContext(Map.of(LocalFilesTool.ROOT_KEY, request.root()));
         }
         return spec;
     }

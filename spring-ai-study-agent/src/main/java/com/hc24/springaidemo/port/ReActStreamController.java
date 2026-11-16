@@ -1,6 +1,7 @@
 package com.hc24.springaidemo.port;
 
 import com.hc24.springaidemo.agent.AdvisorReActAgent;
+import com.hc24.springaidemo.agent.AgentRequest;
 
 import jakarta.annotation.PreDestroy;
 import org.springframework.http.MediaType;
@@ -29,15 +30,15 @@ public class ReActStreamController {
     }
 
     @GetMapping(path = "/react/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter reactStream(String question, String conversationId, String root) {
+    public SseEmitter reactStream(AgentRequest request) {
         SseEmitter emitter = new SseEmitter(Duration.ofMinutes(5).toMillis());
-        this.streamExecutor.execute(() -> emitReact(emitter, conversationId, question, root));
+        this.streamExecutor.execute(() -> emitReact(emitter, request));
         return emitter;
     }
 
-    private void emitReact(SseEmitter emitter, String conversationId, String userQuestion, String root) {
+    private void emitReact(SseEmitter emitter, AgentRequest request) {
         try {
-            this.advisorReActAgent.stream(conversationId, userQuestion, root, token -> send(emitter, "delta", token));
+            this.advisorReActAgent.stream(request, token -> send(emitter, "delta", token));
             emitter.complete();
         }
         catch (Exception ex) {

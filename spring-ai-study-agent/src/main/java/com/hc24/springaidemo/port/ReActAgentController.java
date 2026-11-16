@@ -1,6 +1,7 @@
 package com.hc24.springaidemo.port;
 
 import com.hc24.springaidemo.agent.AdvisorReActAgent;
+import com.hc24.springaidemo.agent.AgentRequest;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -15,8 +16,8 @@ public class ReActAgentController {
     }
 
     @GetMapping("/react")
-    public String reactAgent(String question, String conversationId, String root) {
-        return this.advisorReActAgent.chat(conversationId, question, root);
+    public String reactAgent(AgentRequest request) {
+        return this.advisorReActAgent.chat(request);
     }
 
 }
