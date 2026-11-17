@@ -25,6 +25,7 @@ public class RagConfiguration {
     private static final Logger log = LoggerFactory.getLogger(RagConfiguration.class);
 
     @Bean
+    @ConditionalOnProperty(name = "rag.store", havingValue = "file", matchIfMissing = true)
     ApplicationRunner missingVectorStoreWarning(
             @Value("${rag.store-file:../data/vector-store.json}") String storeFile) {
         return args -> {
@@ -44,7 +45,7 @@ public class RagConfiguration {
     }
 
     @Bean
-    @Conditional(VectorStoreFilePresent.class)
+    @Conditional(RetrievalStoreAvailable.class)
     RetrievalAugmentationAdvisor retrievalAugmentationAdvisor(VectorStore ragVectorStore,
                                                               @Value("${react.rag-prompt}") String ragPrompt) {
         return RetrievalAugmentationAdvisor.builder()
@@ -66,10 +67,33 @@ public class RagConfiguration {
 
         @Override
         public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
-            String path = context.getEnvironment().getProperty("rag.store-file", "../data/vector-store.json");
-            return new File(path).isFile();
+            if (!isFileStore(context)) {
+                return false;
+            }
+            return new File(storeFile(context)).isFile();
         }
 
+    }
+
+    static class RetrievalStoreAvailable implements Condition {
+
+        @Override
+        public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
+            String store = context.getEnvironment().getProperty("rag.store", "file");
+            if ("pgvector".equals(store)) {
+                return true;
+            }
+            return isFileStore(context) && new File(storeFile(context)).isFile();
+        }
+
+    }
+
+    private static boolean isFileStore(ConditionContext context) {
+        return "file".equals(context.getEnvironment().getProperty("rag.store", "file"));
+    }
+
+    private static String storeFile(ConditionContext context) {
+        return context.getEnvironment().getProperty("rag.store-file", "../data/vector-store.json");
     }
 
 }

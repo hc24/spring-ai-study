@@ -10,6 +10,9 @@ spring:
 
 app:
   rag-enabled: false
+
+rag:
+  store: file
   mcp-enabled: false
   external:
     # 故意指向不可达端口，验证测试期间不会真的发起外部请求

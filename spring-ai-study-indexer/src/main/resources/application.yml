@@ -4,12 +4,30 @@ spring:
   # application-local.yml stays with the agent. These paths cover the indexer directory and the repo root.
   config:
     import: optional:file:./application-local.yml,optional:file:../spring-ai-study-agent/application-local.yml,optional:file:./spring-ai-study-agent/application-local.yml
+  # The JDBC starter creates a DataSource whenever it is on the classpath.
+  # Keep it off until rag.store=pgvector imports DataSourceAutoConfiguration.
+  autoconfigure:
+    exclude: org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
+  datasource:
+    url: jdbc:postgresql://localhost:5432/springaistudy
+    username: postgres
+    driver-class-name: org.postgresql.Driver
   ai:
     openai:
       base-url: https://tokenhub.tencentmaas.com/v1
       embedding:
         model: kinfra-text-embedding-0.6b
         encoding-format: float
+    vectorstore:
+      type: ${rag.store:file}
+      pgvector:
+        dimensions: 1024
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+        initialize-schema: true
+        # Re-running the indexer replaces the corpus instead of inserting it twice.
+        remove-existing-vector-store-table: true
 
 rag:
+  store: file
   store-file: ../data/vector-store.json
