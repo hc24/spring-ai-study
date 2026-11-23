@@ -43,8 +43,8 @@ public class AdvisorReActAgent {
         retrievalAdvisor.ifAvailable(advisors::add);
         advisors.add(SimpleLoggerAdvisor.builder().order(ToolCallingAdvisor.DEFAULT_ORDER + 1).build());
         this.chatClient = ChatClient.builder(chatModel)
-                .defaultTools((Object[]) toolCatalog.getToolCallbacks())
-                .defaultAdvisors(advisors.toArray(Advisor[]::new))
+                .defaultTools(toolCatalog.getToolCallbacks())
+                .defaultAdvisors(advisors)
                 .build();
     }
 
