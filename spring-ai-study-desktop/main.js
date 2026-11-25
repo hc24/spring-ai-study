@@ -31,6 +31,39 @@ function parseEvent(block) {
   return { event: eventName, data: dataLines.join('\n') };
 }
 
+function fetchUsage(conversationId) {
+  const query = new URLSearchParams();
+  query.set('conversationId', conversationId || '');
+  return new Promise((resolve, reject) => {
+    const request = http.get({
+      hostname: AGENT_HOST,
+      port: AGENT_PORT,
+      path: '/react/usage?' + query.toString(),
+      headers: { Accept: 'application/json' }
+    }, (response) => {
+      let body = '';
+      response.setEncoding('utf8');
+      response.on('data', (chunk) => {
+        body += chunk;
+      });
+      response.on('end', () => {
+        request.setTimeout(0);
+        if (response.statusCode !== 200) {
+          reject(new Error('HTTP ' + response.statusCode));
+          return;
+        }
+        try {
+          resolve(JSON.parse(body));
+        } catch (err) {
+          reject(err);
+        }
+      });
+    });
+    request.setTimeout(5000, () => request.destroy());
+    request.on('error', () => reject(new Error('usage request failed')));
+  });
+}
+
 function streamQuestion(question, conversationId, root, sender) {
   const query = new URLSearchParams({ question: question });
   if (conversationId) {
@@ -87,6 +120,7 @@ function streamQuestion(question, conversationId, root, sender) {
 }
 
 app.whenReady().then(() => {
+  ipcMain.handle('usage', (_event, conversationId) => fetchUsage(String(conversationId || '')));
   ipcMain.handle('choose-directory', async () => {
     const result = await dialog.showOpenDialog({properties: ['openDirectory']});
     if (result.canceled || result.filePaths.length === 0) {

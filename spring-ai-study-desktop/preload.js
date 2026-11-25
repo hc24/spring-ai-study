@@ -4,6 +4,9 @@ contextBridge.exposeInMainWorld('desktop', {
   ask(question, conversationId, root) {
     ipcRenderer.send('ask', {question, conversationId, root});
   },
+  usage(conversationId) {
+    return ipcRenderer.invoke('usage', conversationId);
+  },
   chooseDirectory() {
     return ipcRenderer.invoke('choose-directory');
   },

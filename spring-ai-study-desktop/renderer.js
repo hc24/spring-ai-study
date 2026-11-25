@@ -3,8 +3,14 @@ const form = document.getElementById('composer');
 const question = document.getElementById('question');
 const send = document.getElementById('send');
 const newChat = document.getElementById('new-chat');
-let conversationId = crypto.randomUUID();
+const tabs = document.getElementById('tabs');
+const usageEl = document.getElementById('usage');
 let grantedRoot = '';
+let conversations = [];
+let active = null;
+let inflight = null;
+let streamOpen = false;
+let nextLabel = 1;
 const status = document.createElement('div');
 status.className = 'status';
 status.hidden = true;
@@ -27,53 +33,172 @@ function renderAnswer(text) {
   return window.DOMPurify.sanitize(markdown.render(text || ''));
 }
 
-let toolPanel = null;
-let toolCount = 0;
-let answerBubble = null;
-let answerText = '';
-
-function appendDelta(text) {
-  if (!answerBubble) {
-    answerBubble = document.createElement('div');
-    answerBubble.className = 'msg answer markdown';
-    messages.appendChild(answerBubble);
-  }
-  answerText += text;
-  const html = renderAnswer(answerText);
-  if (html != null) {
-    answerBubble.innerHTML = html;
-  } else {
-    answerBubble.textContent = answerText;
-  }
-  if (!status.hidden) {
-    messages.appendChild(status);
-  }
-  messages.scrollTop = messages.scrollHeight;
+function createConversation() {
+  const conversation = {
+    id: crypto.randomUUID(),
+    label: '对话 ' + nextLabel,
+    panel: document.createElement('div'),
+    usage: null,
+    usageRequest: 0,
+    toolPanel: null,
+    toolCount: 0,
+    answerBubble: null,
+    answerText: '',
+    closed: false
+  };
+  nextLabel += 1;
+  return conversation;
 }
 
-function appendTool(kind, text) {
-  if (!toolPanel) {
-    toolPanel = document.createElement('details');
-    toolPanel.className = 'tools';
-    const summary = document.createElement('summary');
-    toolPanel.appendChild(summary);
-    messages.appendChild(toolPanel);
+function usd(value) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) {
+    return '0.0000';
   }
-  toolCount += 1;
-  toolPanel.querySelector('summary').textContent = '查看工具调用（' + toolCount + '）';
+  return amount.toFixed(4);
+}
+
+function renderUsage(usage) {
+  if (!usage) {
+    usageEl.textContent = '0 tokens · $0.0000 · 剩余 —';
+    return;
+  }
+  const tokens = Number(usage.totalTokens || 0).toLocaleString('en-US');
+  usageEl.textContent = tokens + ' tokens · $' + usd(usage.estimatedUsd) + ' · 剩余 $' + usd(usage.remainingUsd);
+}
+
+function refreshUsage(conversation) {
+  if (!conversation || conversation.closed || !window.desktop.usage) {
+    return;
+  }
+  const requestId = conversation.usageRequest + 1;
+  conversation.usageRequest = requestId;
+  window.desktop.usage(conversation.id).then((usage) => {
+    if (conversation.closed || requestId !== conversation.usageRequest || !usage) {
+      return;
+    }
+    conversation.usage = usage;
+    if (conversation === active) {
+      renderUsage(usage);
+    }
+  }).catch(() => {
+    // Keep the numbers already shown for this conversation.
+  });
+}
+
+function renderTabs() {
+  tabs.replaceChildren();
+  conversations.forEach((conversation) => {
+    const tab = document.createElement('div');
+    tab.className = 'tab' + (conversation === active ? ' active' : '');
+    const select = document.createElement('button');
+    select.type = 'button';
+    select.className = 'tab-label';
+    select.textContent = conversation.label;
+    select.addEventListener('click', () => activate(conversation));
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'tab-close';
+    close.setAttribute('aria-label', '关闭');
+    close.textContent = '×';
+    close.addEventListener('click', (event) => closeConversation(conversation, event));
+    tab.append(select, close);
+    tabs.appendChild(tab);
+  });
+}
+
+function syncComposer() {
+  const busyHere = streamOpen && inflight === active;
+  send.disabled = streamOpen;
+  question.disabled = streamOpen;
+  status.hidden = !busyHere;
+  if (busyHere) {
+    active.panel.appendChild(status);
+    messages.scrollTop = messages.scrollHeight;
+  }
+}
+
+function activate(conversation) {
+  active = conversation;
+  messages.replaceChildren(conversation.panel);
+  renderTabs();
+  renderUsage(conversation.usage);
+  syncComposer();
+  refreshUsage(conversation);
+}
+
+function closeConversation(conversation, event) {
+  event.stopPropagation();
+  const index = conversations.indexOf(conversation);
+  if (index < 0) {
+    return;
+  }
+  conversation.closed = true;
+  const wasActive = conversation === active;
+  conversations.splice(index, 1);
+  if (conversations.length === 0) {
+    const fresh = createConversation();
+    conversations.push(fresh);
+    activate(fresh);
+    return;
+  }
+  if (wasActive) {
+    activate(conversations[Math.min(index, conversations.length - 1)]);
+    return;
+  }
+  renderTabs();
+}
+
+function scrollIfVisible(conversation) {
+  if (conversation === active) {
+    messages.scrollTop = messages.scrollHeight;
+  }
+}
+
+function stickStatus(conversation) {
+  if (streamOpen && inflight === conversation) {
+    conversation.panel.appendChild(status);
+  }
+}
+
+function appendDelta(conversation, text) {
+  if (!conversation.answerBubble) {
+    conversation.answerBubble = document.createElement('div');
+    conversation.answerBubble.className = 'msg answer markdown';
+    conversation.panel.appendChild(conversation.answerBubble);
+  }
+  conversation.answerText += text;
+  const html = renderAnswer(conversation.answerText);
+  if (html != null) {
+    conversation.answerBubble.innerHTML = html;
+  } else {
+    conversation.answerBubble.textContent = conversation.answerText;
+  }
+  stickStatus(conversation);
+  scrollIfVisible(conversation);
+}
+
+function appendTool(conversation, kind, text) {
+  if (!conversation.toolPanel) {
+    conversation.toolPanel = document.createElement('details');
+    conversation.toolPanel.className = 'tools';
+    const summary = document.createElement('summary');
+    conversation.toolPanel.appendChild(summary);
+    conversation.panel.appendChild(conversation.toolPanel);
+  }
+  conversation.toolCount += 1;
+  conversation.toolPanel.querySelector('summary').textContent = '查看工具调用（' + conversation.toolCount + '）';
   const item = document.createElement('div');
   item.className = 'msg ' + kind;
   item.textContent = labels[kind] + '\n' + text;
-  toolPanel.appendChild(item);
-  if (!status.hidden) {
-    messages.appendChild(status);
-  }
-  messages.scrollTop = messages.scrollHeight;
+  conversation.toolPanel.appendChild(item);
+  stickStatus(conversation);
+  scrollIfVisible(conversation);
 }
 
-function append(kind, text) {
+function append(conversation, kind, text) {
   if (kind === 'tool_call' || kind === 'tool_result') {
-    appendTool(kind, text);
+    appendTool(conversation, kind, text);
     return;
   }
   const item = document.createElement('div');
@@ -87,48 +212,53 @@ function append(kind, text) {
   } else {
     item.textContent = text;
   }
-  messages.appendChild(item);
-  if (!status.hidden) {
-    messages.appendChild(status);
-  }
-  messages.scrollTop = messages.scrollHeight;
-}
-
-function setBusy(busy) {
-  send.disabled = busy;
-  question.disabled = busy;
-  status.hidden = !busy;
-  if (busy) {
-    messages.appendChild(status);
-    messages.scrollTop = messages.scrollHeight;
-  }
+  conversation.panel.appendChild(item);
+  stickStatus(conversation);
+  scrollIfVisible(conversation);
 }
 
 window.desktop.onEvent((payload) => {
+  const conversation = inflight;
+  if (!conversation || conversation.closed) {
+    return;
+  }
   if (payload.event === 'delta') {
-    appendDelta(payload.data || '');
+    appendDelta(conversation, payload.data || '');
     return;
   }
   const kind = payload.event === 'answer' ? 'answer' : payload.event;
-  append(kind === 'message' ? 'answer' : kind, payload.data || '');
+  append(conversation, kind === 'message' ? 'answer' : kind, payload.data || '');
 });
 
-window.desktop.onDone(() => setBusy(false));
+window.desktop.onDone(() => {
+  const finished = inflight;
+  inflight = null;
+  streamOpen = false;
+  syncComposer();
+  if (finished && !finished.closed) {
+    refreshUsage(finished);
+  }
+  if (active && active !== finished) {
+    refreshUsage(active);
+  }
+});
 
 form.addEventListener('submit', (event) => {
   event.preventDefault();
   const text = question.value.trim();
-  if (!text || send.disabled) {
+  if (!text || streamOpen || !active) {
     return;
   }
-  append('user', text);
+  append(active, 'user', text);
   question.value = '';
-  toolPanel = null;
-  toolCount = 0;
-  answerBubble = null;
-  answerText = '';
-  setBusy(true);
-  window.desktop.ask(text, conversationId, grantedRoot);
+  active.toolPanel = null;
+  active.toolCount = 0;
+  active.answerBubble = null;
+  active.answerText = '';
+  inflight = active;
+  streamOpen = true;
+  syncComposer();
+  window.desktop.ask(text, active.id, grantedRoot);
 });
 
 document.getElementById('choose-root').addEventListener('click', async () => {
@@ -146,12 +276,12 @@ document.getElementById('clear-root').addEventListener('click', () => {
 });
 
 newChat.addEventListener('click', () => {
-  conversationId = crypto.randomUUID();
-  toolPanel = null;
-  toolCount = 0;
-  answerBubble = null;
-  answerText = '';
-  messages.replaceChildren();
-  setBusy(false);
+  const conversation = createConversation();
+  conversations.push(conversation);
+  activate(conversation);
   question.focus();
 });
+
+const first = createConversation();
+conversations.push(first);
+activate(first);

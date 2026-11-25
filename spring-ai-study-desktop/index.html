@@ -21,12 +21,58 @@
       font-weight: 600;
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      gap: 12px;
     }
     header button {
       background: #eef2ff;
       color: #3730a3;
       font-weight: 500;
+      flex-shrink: 0;
+    }
+    #usage {
+      margin-left: auto;
+      font-size: 13px;
+      font-weight: 500;
+      color: #4b5563;
+      white-space: nowrap;
+    }
+    #tabs {
+      display: flex;
+      gap: 8px;
+      padding: 8px 18px;
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+    .tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      border: 1px solid #e5e7eb;
+      border-radius: 999px;
+      background: #f8fafc;
+      padding: 2px 4px 2px 2px;
+      flex-shrink: 0;
+    }
+    .tab.active {
+      background: #eef2ff;
+      border-color: #c7d2fe;
+    }
+    .tab button {
+      background: transparent;
+      color: #374151;
+      padding: 4px 8px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .tab.active button {
+      color: #3730a3;
+    }
+    .tab .tab-close {
+      padding: 0 8px;
+      font-size: 16px;
+      line-height: 1;
     }
 
     #grant {
@@ -134,8 +180,10 @@
 <body>
   <header>
     <span>旅行助手</span>
+    <span id="usage">0 tokens · $0.0000 · 剩余 —</span>
     <button id="new-chat" type="button">新对话</button>
   </header>
+  <div id="tabs"></div>
   <div id="grant">
     <span id="root-label">未选择目录</span>
     <button id="choose-root" type="button">选择目录</button>

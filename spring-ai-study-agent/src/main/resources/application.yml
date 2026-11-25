@@ -95,6 +95,11 @@ react:
     ---------------------
     请先根据实际情况调用其他工具。资料里没有的内容，用工具结果或你自己的知识补充，并标明来源。
     用户问题：{query}
+  # Practice placeholders, not tokenhub prices.
+  usage:
+    prompt-usd-per-million: 0.20
+    completion-usd-per-million: 0.80
+    budget-usd: 1.00
 
 logging:
   level:

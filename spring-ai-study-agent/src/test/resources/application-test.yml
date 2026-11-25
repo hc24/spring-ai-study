@@ -17,6 +17,10 @@ rag:
 react:
   memory-store: memory
   mcp-enabled: false
+  usage:
+    prompt-usd-per-million: 0.20
+    completion-usd-per-million: 0.80
+    budget-usd: 1000000
   external:
     # 故意指向不可达端口，验证测试期间不会真的发起外部请求
     base-url: http://127.0.0.1:1/mock
